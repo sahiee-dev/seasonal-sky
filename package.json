@@ -1,0 +1,63 @@
+{
+  "name": "seasonal-sky",
+  "version": "0.1.0",
+  "description": "A canvas sky for your website: falling leaves, petals, snow, rain, storms, fog and rainbows, chosen from the season, the time of day and the live weather, and pushed around by the cursor.",
+  "keywords": [
+    "weather",
+    "seasons",
+    "particles",
+    "canvas",
+    "leaves",
+    "snow",
+    "rain",
+    "rainbow",
+    "ambient",
+    "animation",
+    "open-meteo"
+  ],
+  "license": "MIT",
+  "author": "sahiee-dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sahiee-dev/seasonal-sky.git"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+      "require": { "types": "./dist/index.d.cts", "default": "./dist/index.cjs" }
+    },
+    "./react": {
+      "import": { "types": "./dist/react.d.ts", "default": "./dist/react.js" },
+      "require": { "types": "./dist/react.d.cts", "default": "./dist/react.cjs" }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": ["dist", "README.md", "LICENSE", "CHANGELOG.md"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "demo": "npm run build && npx --yes serve -l 4173 .",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+  },
+  "peerDependencies": {
+    "react": ">=17"
+  },
+  "peerDependenciesMeta": {
+    "react": { "optional": true }
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.0"
+  }
+}

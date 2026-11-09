@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>seasonal-sky demo</title>
+<style>
+  :root { --bg: #f6f2ea; --fg: #1d1b18; --muted: #6d675d; --line: #d9d2c4; --card: rgba(255,255,255,.7); }
+  :root[data-theme="dark"] { --bg: #101218; --fg: #ece9e1; --muted: #8d939f; --line: #2a2e39; --card: rgba(24,27,36,.8); }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--fg); font: 16px/1.55 ui-sans-serif, system-ui, sans-serif; transition: background .3s; }
+  main { max-width: 640px; margin: 0 auto; padding: 72px 20px 160px; }
+  h1 { font: 500 clamp(2rem, 6vw, 3rem)/1.1 ui-serif, Georgia, serif; margin: 0 0 12px; letter-spacing: -.01em; }
+  p { color: var(--muted); }
+  code { font: 13px ui-monospace, monospace; background: var(--card); padding: 1px 5px; border-radius: 4px; }
+  .panel { position: fixed; z-index: 200; right: 16px; bottom: 16px; width: min(360px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; background: var(--card); backdrop-filter: blur(12px); border: 1px solid var(--line); border-radius: 12px; padding: 14px; font-size: 13px; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+  .label { font: 11px ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  button { font: inherit; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: inherit; cursor: pointer; }
+  button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  pre { margin: 0; font: 11.5px/1.5 ui-monospace, monospace; color: var(--muted); white-space: pre-wrap; }
+  input[type=range] { width: 100%; }
+  .spacer { height: 120vh; }
+</style>
+</head>
+<body>
+<main>
+  <h1>A sky for your page</h1>
+  <p>Falling leaves, petals, snow, rain, storms, fog and the odd rainbow, chosen from the season, the time of day and the real weather. Move the pointer through it. Click the page. Scroll.</p>
+  <p>Try <code>autumn</code> + <code>storm</code>, <code>summer</code> + <code>rain</code> by day, <code>winter</code> + <code>storm</code>, or <code>summer</code> + <code>night</code> + <code>clear</code>.</p>
+  <div class="spacer"></div>
+  <p>The sky is pushed by the scroll, too.</p>
+  <div class="spacer"></div>
+</main>
+
+<div class="panel" id="panel"></div>
+
+<script type="module">
+  import { mountSky, SEASONS, PHASES } from "../dist/index.js";
+
+  const WEATHER = ["live", "none", "clear", "cloudy", "fog", "rain", "snow", "storm"];
+  const params = new URLSearchParams(location.search);
+  const pick = (k, list, d) => (list.includes(params.get(k)) ? params.get(k) : d);
+
+  const ui = {
+    season: pick("season", ["auto", ...SEASONS], "auto"),
+    time: pick("time", ["auto", ...PHASES], "auto"),
+    weather: pick("weather", WEATHER, "live"),
+    intensity: Number(params.get("intensity")) || 1,
+    theme: params.get("theme") === "dark" ? "dark" : "light",
+  };
+  document.documentElement.dataset.theme = ui.theme;
+
+  const panel = document.getElementById("panel");
+  const out = document.createElement("pre");
+
+  const sky = mountSky({
+    season: ui.season, time: ui.time, weather: ui.weather, intensity: ui.intensity,
+    location: params.get("location") === "timezone" ? "timezone" : "ask",
+    onChange: (s) => {
+      const { recipe, ...rest } = s;
+      out.textContent = JSON.stringify({ ...rest, layers: recipe.layers.map((l) => `${l.id}:${l.kinds[0]}×${l.count}`), rainbow: +recipe.rainbow.toFixed(2) }, null, 1);
+    },
+  });
+  window.sky = sky;
+
+  function group(label, key, list) {
+    const wrap = document.createElement("div");
+    wrap.innerHTML = `<div class="label">${label}</div>`;
+    const row = document.createElement("div");
+    row.className = "row";
+    for (const v of list) {
+      const b = document.createElement("button");
+      b.textContent = v;
+      b.setAttribute("aria-pressed", String(ui[key] === v));
+      b.onclick = () => {
+        ui[key] = v;
+        for (const x of row.children) x.setAttribute("aria-pressed", String(x === b));
+        if (key === "theme") document.documentElement.dataset.theme = v;
+        else sky.set({ [key === "time" ? "time" : key]: v });
+      };
+      row.append(b);
+    }
+    wrap.append(row);
+    panel.append(wrap);
+  }
+  group("Season", "season", ["auto", ...SEASONS]);
+  group("Time", "time", ["auto", ...PHASES]);
+  group("Weather", "weather", WEATHER);
+  group("Page", "theme", ["light", "dark"]);
+
+  const r = document.createElement("div");
+  r.innerHTML = `<div class="label">Intensity (forced weather)</div>`;
+  const range = document.createElement("input");
+  range.type = "range"; range.min = 0.3; range.max = 1.7; range.step = 0.05; range.value = ui.intensity;
+  range.oninput = () => sky.set({ intensity: Number(range.value) });
+  r.append(range);
+  panel.append(r);
+
+  const ask = document.createElement("button");
+  ask.textContent = "Use my exact location";
+  ask.style.margin = "10px 0";
+  ask.onclick = () => sky.requestLocation();
+  panel.append(ask, out);
+</script>
+</body>
+</html>
